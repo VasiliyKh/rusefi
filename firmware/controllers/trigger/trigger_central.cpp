@@ -424,39 +424,30 @@ void handleShaftSignal(int signalIndex, bool isRising, efitick_t timestamp) {
 					(engineConfiguration->invertSecondaryTriggerSignal ? SHAFT_SECONDARY_RISING : SHAFT_SECONDARY_FALLING);
 	}
 
+	// start of the kickstart mode code
+			// start of the kickstart mode variables
+			efitick_t protecttime;
+			IgnitionOutputPin *outputforfastspark = &enginePins.coils[0];
+			      IgnitionOutputPin *outputforfastspark1 = &enginePins.coils[1];
+		if(signal == SHAFT_PRIMARY_RISING) {        // if we see that tooth goes in the sensor
+			outputforfastspark -> setHigh();  //discharge the 1st cylinder's coil in order to avoid overheating of ignition system components
+							outputforfastspark1 -> setHigh();
+							warning(CUSTOM_ERR_UNEXPECTED_SHAFT_EVENT, "gotcha!");
+					}
+
+				if(signal == SHAFT_PRIMARY_FALLING){        // if we see that tooth goes out from the sensor
+					outputforfastspark -> setLow();  //discharge the 1st cylinder's coil in order to avoid overheating of ignition system components
+									outputforfastspark1 -> setLow();
+					}
+
 	// Don't accept trigger input in case of some problems
 	if (!engine->limpManager.allowTriggerInput()) {
 		return;
 	}
 
-	// start of the kickstart mode code
-		// start of the kickstart mode variables
-		efitick_t protecttime;
-		IgnitionOutputPin *outputforfastspark = &enginePins.coils[0];
-		      IgnitionOutputPin *outputforfastspark1 = &enginePins.coils[1];
-		  //    // end of the kickstart mode variables
-		if (engine->triggerCentral.triggerState.getShaftSynchronized() == false){  //if synchronization is false
-			engineConfiguration->isIgnitionEnabled = false; //turn off "the official" ignition system in order to control ignition by this part of the code
-		if(signal == SHAFT_PRIMARY_RISING) {        // if we see that tooth goes in the sensor
-		protecttime = getTimeNowSeconds();   // we need to know the time in order to prevent coil overheating
-		outputforfastspark -> setHigh();  //start the 1st cylinder's coil charge
-		outputforfastspark1 -> setHigh(); // start the 2nd cylinder's coil charge
-		}
 
-		if(signal == SHAFT_PRIMARY_FALLING){        // if we see that tooth goes out from the sensor
-			outputforfastspark -> setLow();  //discharge the 1st cylinder's coil in order to spark
-		outputforfastspark1 -> setLow(); // discharge the 2st cylinder's coil in order to spark
-		}
-	 // I know that this part of the code is important but I don't know where it should be. I'd put it into the "fast_adc' function or somewhere else. But let it be here for now. Even if it doesn't work here.
-		if ((getTimeNowSeconds()-protecttime)>1){  // if we don't see any trigger events more that 0.5 sec
-			outputforfastspark -> setLow();  //discharge the 1st cylinder's coil in order to avoid overheating of ignition system components
-			outputforfastspark1 -> setLow(); // discharge the 2st cylinder's coil in order to avoid overheating of ignition system components
-			}
-	// end of important park of the code
-		} else { // if shaft is synchronized
-		engineConfiguration->isIgnitionEnabled = true; // when the shaft is synchronized we turn on "normal" ignition system as it set in the TS
-		}
-	// end of the kickstart mode code
+
+
 
 
 #if EFI_TOOTH_LOGGER
