@@ -9,6 +9,8 @@
 #include "pch.h"
 #include "os_access.h"
 
+
+#include "rpm_calculator.h"
 #include "trigger_central.h"
 #include "trigger_decoder.h"
 #include "main_trigger_callback.h"
@@ -48,6 +50,22 @@ TriggerCentral::TriggerCentral() :
 	triggerState.resetTriggerState();
 	noiseFilter.resetAccumSignalData();
 }
+
+//the KS mode functions
+void kickstartFire(OutputPin* pin){
+// Fire the coil
+pin->setValue(false);
+}
+
+void kickstartCharge(OutputPin* pin){
+// Charge the coil
+pin->setValue(true);
+}
+
+//end of the KS mode functions
+
+
+
 
 void TriggerNoiseFilter::resetAccumSignalData() {
 	memset(lastSignalTimes, 0xff, sizeof(lastSignalTimes));	// = -1
@@ -424,22 +442,25 @@ void handleShaftSignal(int signalIndex, bool isRising, efitick_t timestamp) {
 					(engineConfiguration->invertSecondaryTriggerSignal ? SHAFT_SECONDARY_RISING : SHAFT_SECONDARY_FALLING);
 	}
 
+	//KS mode variables
+	OutputPin* coil1 = &enginePins.coils[0];
+	OutputPin* coil2 = &enginePins.coils[1];
+	// end of the KS mode variables
+
 	// start of the kickstart mode code
-			// start of the kickstart mode variables
-			efitick_t protecttime;
-			IgnitionOutputPin *outputforfastspark = &enginePins.coils[0];
-			      IgnitionOutputPin *outputforfastspark1 = &enginePins.coils[1];
-		if(signal == SHAFT_PRIMARY_RISING) {        // if we see that tooth goes in the sensor
-			outputforfastspark -> setHigh();  //discharge the 1st cylinder's coil in order to avoid overheating of ignition system components
-							outputforfastspark1 -> setHigh();
-							warning(CUSTOM_ERR_UNEXPECTED_SHAFT_EVENT, "gotcha!");
-					}
+	if (engine->rpmCalculator.getRpm()<800){
+	if(signal == SHAFT_PRIMARY_RISING){
+	kickstartCharge(coil1);
+	kickstartCharge(coil2);
+	}
 
-				if(signal == SHAFT_PRIMARY_FALLING){        // if we see that tooth goes out from the sensor
-					outputforfastspark -> setLow();  //discharge the 1st cylinder's coil in order to avoid overheating of ignition system components
-									outputforfastspark1 -> setLow();
-					}
+	if(signal == SHAFT_PRIMARY_FALLING){
+	kickstartFire(coil1);
+	kickstartFire(coil2);
+	}
 
+	}
+// end of the ks mode
 	// Don't accept trigger input in case of some problems
 	if (!engine->limpManager.allowTriggerInput()) {
 		return;
