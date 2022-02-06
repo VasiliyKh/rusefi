@@ -16,6 +16,11 @@ void LimpManager::updateState(int rpm, efitick_t nowNt) {
 			allowSpark.clear();
 		}
 	}
+	//KS mode stuff
+	if (rpm < 800) {
+		allowSpark.clear();
+	}
+	//end of the KS mode stuff
 
 	// Force fuel limiting on the fault rev limit
 	if (rpm > m_faultRevLimit) {
