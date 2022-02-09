@@ -410,6 +410,14 @@ void hwHandleShaftSignal(int signalIndex, bool isRising, efitick_t timestamp) {
 	handleShaftSignal(signalIndex, isRising, timestamp);
 }
 
+static scheduling_s kickstartScheduling;
+
+void kickstartFire(void*) {
+	// Fire the coils!
+	enginePins.coils[0].setLow();
+	enginePins.coils[1].setLow();
+}
+
 // Handle all shaft signals - hardware or emulated both
 void handleShaftSignal(int signalIndex, bool isRising, efitick_t timestamp) {
 	bool isPrimary = signalIndex == 0;
@@ -432,6 +440,18 @@ void handleShaftSignal(int signalIndex, bool isRising, efitick_t timestamp) {
 	// Don't accept trigger input in case of some problems
 	if (!engine->limpManager.allowTriggerInput()) {
 		return;
+	}
+
+	if (Sensor::getOrZero(SensorType::Rpm) < 800) {
+		if(signal == SHAFT_PRIMARY_RISING){
+			// charge the coils
+			enginePins.coils[0].setHigh();
+			enginePins.coils[1].setHigh();
+
+			// schedule to fire them later
+			auto fireTime = timestamp + MS2NT(engine->engineState.sparkDwell);
+			engine->executor.scheduleByTimestampNt("kick start", &kickstartScheduling, fireTime, kickstartFire);
+		}
 	}
 
 #if EFI_TOOTH_LOGGER

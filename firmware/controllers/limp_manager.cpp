@@ -18,6 +18,11 @@ void LimpManager::updateState(int rpm, efitick_t nowNt) {
 		}
 	}
 
+	// disable spark, kickstart logic handles it
+	if (rpm < 800) {
+		allowSpark.clear(ClearReason::HardLimit);
+	}
+
 	// Force fuel limiting on the fault rev limit
 	if (rpm > m_faultRevLimit) {
 		allowFuel.clear(ClearReason::FaultRevLimit);
