@@ -445,18 +445,21 @@ void handleShaftSignal(int signalIndex, bool isRising, efitick_t timestamp) {
 	//KS mode variables
 	OutputPin* coil1 = &enginePins.coils[0];
 	OutputPin* coil2 = &enginePins.coils[1];
+	scheduling_s kickstartScheduling;
 	// end of the KS mode variables
 
 	// start of the kickstart mode code
 	if (engine->rpmCalculator.getRpm()<800){
-	if(signal == SHAFT_PRIMARY_RISING){
+	/*if(signal == SHAFT_PRIMARY_RISING){
 	kickstartCharge(coil1);
 	kickstartCharge(coil2);
-	}
+	}*/
 
 	if(signal == SHAFT_PRIMARY_FALLING){
-	kickstartFire(coil1);
-	kickstartFire(coil2);
+	//kickstartFire(coil1);
+	//kickstartFire(coil2);
+	kickstartCharge(coil1);
+	engine->executor.scheduleForLater(&kickstartScheduling, MS2US(3), {kickstartFire, coil1});
 	}
 
 	}
